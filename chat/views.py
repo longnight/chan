@@ -4,9 +4,12 @@ from django.db import transaction
 from django.shortcuts import render, redirect
 import haikunator
 from models import Room
+from channels import Channel
 
 
 def index(request):
+    message = {'ABC': 123}
+    Channel('test_channel').send(message)
     return HttpResponse("Hello, world. You're at the polls index.")
 
 

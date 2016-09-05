@@ -24,6 +24,13 @@ def index(message):
         message.reply_channel.send(chunk)
 
 
+
+def test_channel(message):
+    print(message['ABC'])
+    # import pdb; pdb.set_trace()
+    3
+
+
 @channel_session
 def ws_connect(message):
     # Extract the room from the message. This expects message.path to be of the
@@ -112,7 +119,7 @@ def ws_receive(message):
             message.channel_session.session_key,
             channel_layer=message.channel_layer).send(
             {'text': json.dumps(
-                {'message': "you just typed in %s" % data['message'],
+                {'message': "you just typed in: \"%s\" " % data['message'],
                  'handle': 'system say:'})})
 
         # if 'myxxoo' in data['message']:
