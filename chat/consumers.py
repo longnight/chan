@@ -1,7 +1,10 @@
 import re
 import json
+from time import sleep
 import logging
+from django.http import HttpResponse
 from channels import Group
+from channels.handler import AsgiHandler
 from channels.sessions import channel_session
 from channels.auth import (
     http_session_user, channel_session_user, channel_session_user_from_http
@@ -12,7 +15,15 @@ from .models import Room
 log = logging.getLogger(__name__)
 
 
-@http_session_user
+def index(message):
+    # Make standard HTTP response - access ASGI path attribute directly
+    response = HttpResponse(
+        "Hello world! You asked for %s" % message.content['path'])
+    # Encode that response into message format (ASGI)
+    for chunk in AsgiHandler.encode_response(response):
+        message.reply_channel.send(chunk)
+
+
 @channel_session
 def ws_connect(message):
     # Extract the room from the message. This expects message.path to be of the
@@ -54,7 +65,6 @@ def ws_connect(message):
     message.channel_session['room'] = room.label
 
 
-@http_session_user
 @channel_session
 def ws_receive(message):
     # Look up the room from the channel session, bailing if it doesn't exist
@@ -96,11 +106,14 @@ def ws_receive(message):
         Group('chat-'+label, channel_layer=message.channel_layer).send(
             {'text': json.dumps(data)})
 
+        sleep(5)
+
         Group(
             message.channel_session.session_key,
             channel_layer=message.channel_layer).send(
             {'text': json.dumps(
-                {'message': "you're in xxoo!", 'handle': 'system say'})})
+                {'message': "you just typed in %s" % data['message'],
+                 'handle': 'system say:'})})
 
         # if 'myxxoo' in data['message']:
         #     Group('xxoo', channel_layer=message.channel_layer).send(
@@ -108,7 +121,6 @@ def ws_receive(message):
         #             {'message': "you're in xxoo!", 'handle': 'system say'})})
 
 
-@http_session_user
 @channel_session
 def ws_disconnect(message):
     try:
