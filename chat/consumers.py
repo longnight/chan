@@ -1,11 +1,27 @@
 import re
 import json
+from time import sleep
 import logging
+from django.http import HttpResponse
 from channels import Group
+from channels.handler import AsgiHandler
 from channels.sessions import channel_session
+from channels.auth import (
+    http_session_user, channel_session_user, channel_session_user_from_http
+    )
 from .models import Room
 
+
 log = logging.getLogger(__name__)
+
+
+def index(message):
+    # Make standard HTTP response - access ASGI path attribute directly
+    response = HttpResponse(
+        "Hello world! You asked for %s" % message.content['path'])
+    # Encode that response into message format (ASGI)
+    for chunk in AsgiHandler.encode_response(response):
+        message.reply_channel.send(chunk)
 
 
 @channel_session
@@ -37,7 +53,14 @@ def ws_connect(message):
     Group('chat-'+label, channel_layer=message.channel_layer).add(
         message.reply_channel)
 
-    print('iam coming to ws connect~~', '-'*100)
+    # import pdb; pdb.set_trace()
+
+    Group(
+        message.channel_session.session_key,
+        channel_layer=message.channel_layer).add(
+        message.reply_channel)
+
+    print('iam coming to ws connect~~' + '-'*100)
 
     message.channel_session['room'] = room.label
 
@@ -76,10 +99,26 @@ def ws_receive(message):
         # import pdb; pdb.set_trace()
         m
         print('we are at ws receive!!!!' + '*'*100)
+        print(data['message'])
+        # print(message.channel_layer)
 
         # See above for the note about Group
         Group('chat-'+label, channel_layer=message.channel_layer).send(
             {'text': json.dumps(data)})
+
+        sleep(5)
+
+        Group(
+            message.channel_session.session_key,
+            channel_layer=message.channel_layer).send(
+            {'text': json.dumps(
+                {'message': "you just typed in %s" % data['message'],
+                 'handle': 'system say:'})})
+
+        # if 'myxxoo' in data['message']:
+        #     Group('xxoo', channel_layer=message.channel_layer).send(
+        #         {'text': json.dumps(
+        #             {'message': "you're in xxoo!", 'handle': 'system say'})})
 
 
 @channel_session
@@ -93,5 +132,14 @@ def ws_disconnect(message):
 
         Group('chat-'+label, channel_layer=message.channel_layer).discard(
             message.reply_channel)
+
+        Group(
+            message.channel_session.session_key,
+            channel_layer=message.channel_layer).discard(
+            message.reply_channel)
+
+        # Group('xxoo', channel_layer=message.channel_layer).discard(
+        #     message.reply_channel)
+
     except (KeyError, Room.DoesNotExist):
         pass
