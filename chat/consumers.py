@@ -8,7 +8,8 @@ from channels import Group, Channel
 from channels.handler import AsgiHandler
 from channels.sessions import channel_session
 from channels.auth import (
-    http_session_user, channel_session_user, channel_session_user_from_http
+    http_session_user, channel_session_user, channel_session_user_from_http,
+    http_session
     )
 from .models import Room
 
@@ -49,7 +50,7 @@ def test_channel(message):
     # import pdb; pdb.set_trace()
     3
 
-
+@channel_session_user_from_http
 @channel_session
 def ws_connect(message):
     # Extract the room from the message. This expects message.path to be of the
@@ -90,11 +91,13 @@ def ws_connect(message):
 
     print('iam coming to ws connect~~' + '-'*100)
 
-    Group('public').send(gen_data())
-
     message.channel_session['room'] = room.label
 
+    sleep(2)
+    Group(message.channel_session.session_key).send(gen_data())
+    
 
+@channel_session_user_from_http
 @channel_session
 def ws_receive(message):
     # Look up the room from the channel session, bailing if it doesn't exist
@@ -137,7 +140,6 @@ def ws_receive(message):
             {'text': json.dumps(data)})
 
         sleep(5)
-        # import pdb; pdb.set_trace()
 
         Group(
             message.channel_session.session_key,
@@ -146,12 +148,9 @@ def ws_receive(message):
                 {'message': "you just typed in: \"%s\" " % data['message'],
                  'handle': 'system say:'})})
 
-        # if 'myxxoo' in data['message']:
-        #     Group('xxoo', channel_layer=message.channel_layer).send(
-        #         {'text': json.dumps(
-        #             {'message': "you're in xxoo!", 'handle': 'system say'})})
 
 
+@channel_session_user_from_http
 @channel_session
 def ws_disconnect(message):
     try:
@@ -170,6 +169,13 @@ def ws_disconnect(message):
             message.channel_session.session_key,
             channel_layer=message.channel_layer).discard(
             message.reply_channel)
+
+        sleep(2)
+        Group('public').send({'text': json.dumps({
+            'message': 'people %s had left us, rest in peace.' % (
+                message.channel_session.session_key),
+            'handle': 'system said saddly: '
+            })})
 
         # Group('xxoo', channel_layer=message.channel_layer).discard(
         #     message.reply_channel)
