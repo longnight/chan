@@ -1,15 +1,34 @@
 import re
 import json
+from datetime import datetime 
 from time import sleep
 import logging
 from django.http import HttpResponse
-from channels import Group
+from channels import Group, Channel
 from channels.handler import AsgiHandler
 from channels.sessions import channel_session
 from channels.auth import (
     http_session_user, channel_session_user, channel_session_user_from_http
     )
 from .models import Room
+
+# run:
+# daphne chat.asgi:channel_layer --port 8888
+# python manage.py runworker
+
+# sample:
+# https://channels.readthedocs.io/en/latest/getting-started.html#models
+
+
+# below work on command line:
+
+def gen_data():
+    return {
+        'text': json.dumps({
+            'message': "now time is %s" % datetime.now().strftime("%H:%M:%S"), 
+            'handle': 'first time you login this room, outside layer say:'})
+        }
+
 
 
 log = logging.getLogger(__name__)
@@ -60,6 +79,8 @@ def ws_connect(message):
     Group('chat-'+label, channel_layer=message.channel_layer).add(
         message.reply_channel)
 
+    Group('public').add(message.reply_channel)
+
     # import pdb; pdb.set_trace()
 
     Group(
@@ -68,6 +89,8 @@ def ws_connect(message):
         message.reply_channel)
 
     print('iam coming to ws connect~~' + '-'*100)
+
+    Group('public').send(gen_data())
 
     message.channel_session['room'] = room.label
 
@@ -114,6 +137,7 @@ def ws_receive(message):
             {'text': json.dumps(data)})
 
         sleep(5)
+        # import pdb; pdb.set_trace()
 
         Group(
             message.channel_session.session_key,
@@ -139,6 +163,8 @@ def ws_disconnect(message):
 
         Group('chat-'+label, channel_layer=message.channel_layer).discard(
             message.reply_channel)
+
+        Group('public').discard(message.reply_channel)
 
         Group(
             message.channel_session.session_key,

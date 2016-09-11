@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
+import json
+from datetime import datetime
 from django.http import HttpResponse
 from django.db import transaction
 from django.shortcuts import render, redirect
 import haikunator
+from channels import Group
 from models import Room
 from channels import Channel
 
@@ -34,6 +37,8 @@ def chat_room(request, label):
 
     # We want to show the last 50 messages, ordered most-recent-last
     messages = reversed(room.messages.order_by('-timestamp')[:50])
+
+    print('^'*10 + 'Wellcome to chat room: %s' % label + '^'*10)
 
     return render(request, "chat/room.html", {
         'room': room,
