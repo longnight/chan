@@ -34,9 +34,8 @@ class KeysContainer(object):
             k_que = self.get_k_que_cache()
             k_que.append(new_k)
             cache.set(CACHE_KEY, k_que, LIFETIME*30)
-            print('='*20 + '\n')
-            print('adding item %s in cache %s' % (item, new_k))
-            print('='*20 + '\n')
+        return
 
     def clear(self):
         cache.delete(CACHE_KEY)
+        return
