@@ -147,3 +147,8 @@ CHANNEL_LAYERS = {
         "ROUTING": "chat.routing.channel_routing",
     },
 }
+
+# KeysContainer:
+CACHE_KEY = 'k_que'
+LIFETIME = 40
+MAXITEMS = 5

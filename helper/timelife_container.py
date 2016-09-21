@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
-from django.core.cache import cache
+
 from collections import deque
 from uuid import uuid4
-
-CACHE_KEY = 'k_que'
-LIFETIME = 40
-MAX = 5
+from django.core.cache import cache
+from django.conf import settings
 
 
 class KeysContainer(object):
@@ -13,16 +11,27 @@ class KeysContainer(object):
     实现一个FIFO容器，其中的item保存于cache并带有lifetime.
     """
 
+    def __init__(
+            self,
+            cache_key=settings.CACHE_KEY, cache=cache,
+            lifetime=settings.LIFETIME, max_num=settings.MAXITEMS
+            ):
+        pass
+        self.cache_key = cache_key
+        self.cache = cache
+        self.lifetime = lifetime
+        self.max_num = max_num
+
     def get_k_que_cache(self):
-        return cache.get_or_set(
-            CACHE_KEY, deque(list(), maxlen=MAX), LIFETIME*30)
+        return self.cache.get_or_set(
+            self.cache_key, deque(list(), maxlen=self.max_num))
 
     def items(self):
         v_list = list()
         k_que = self.get_k_que_cache()
         if k_que:
             for key in k_que:
-                v = cache.get(key)
+                v = self.cache.get(key)
                 if v:
                     v_list.insert(0, v)
         return v_list
@@ -30,12 +39,12 @@ class KeysContainer(object):
     def add(self, *items):
         for item in items:
             new_k = uuid4()
-            cache.set(new_k, item, LIFETIME)
+            self.cache.set(new_k, item, self.lifetime)
             k_que = self.get_k_que_cache()
             k_que.append(new_k)
-            cache.set(CACHE_KEY, k_que, LIFETIME*30)
+            self.cache.set(self.cache_key, k_que)
         return
 
     def clear(self):
-        cache.delete(CACHE_KEY)
+        self.cache.delete(self.cache_key)
         return
