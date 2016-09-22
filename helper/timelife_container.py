@@ -33,8 +33,8 @@ class KeysContainer(object):
             for key in k_que:
                 v = self.cache.get(key)
                 if v:
-                    v_list.insert(0, v)
-        return v_list
+                    v_list.append(v)
+        return v_list.reverse()
 
     def add(self, *items):
         for item in items:
